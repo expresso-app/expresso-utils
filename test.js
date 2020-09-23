@@ -5,7 +5,7 @@ const res = helpers.filterObject({ id: 1, name: "ali", age: 30 }, "name", "age")
 console.log(res);
 
 //utils.helpers.echo();
-helpers.echo("expresso utils");
+helpers.echo("expresso app - utils");
 
 //console.log(catchAsync);
 
