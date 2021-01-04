@@ -29,7 +29,7 @@ const handleJWTExpiredError = err => {
 
 const sendErrorDev = (err, req, res) => {
     // for API
-    if(req.originalUrl.startsWith("/api")) {
+    if (req.originalUrl.startsWith("/api")) {
         res.status(err.statusCode).json({
             status: err.status,
             error: err,
@@ -38,6 +38,10 @@ const sendErrorDev = (err, req, res) => {
         });
     } else {
         // for RENDERED WEBSITE 
+
+        // eslint-disable-next-line no-console
+        console.error("ERROR!", err);
+
         res.status(err.statusCode).render("error", {
             title: "Something went wrong!",
             msg: err.message
@@ -46,23 +50,49 @@ const sendErrorDev = (err, req, res) => {
 };
 
 const sendErrorProd = (err, req, res) => {
-    // Operational error
-    if(err.isOperational) {
-        res.status(err.statusCode).json({
-            status: err.status,
-            message: err.message
-        });
+    // A) for API
+    if (req.originalUrl.startsWith("/api")) {
+        // Operational error
+        if (err.isOperational) {
+            return res.status(err.statusCode).json({
+                status: err.status,
+                message: err.message
+            });
+        }
+        else {
+            // Programming, Unknown error
+
+            // eslint-disable-next-line no-console
+            console.error("ERROR!", err);
+
+            return res.status(500).json({
+                status: "error",
+                message: "Something went wrong!",
+                msg: err.message
+            });
+        }
     } 
-    // Programming, Unknown error
     else {
-        // eslint-disable-next-line no-console
-        console.error("ERROR!", err);
-        
-        res.status(500).json({
-            status: "error",
-            message: "Something went wrong!", 
-            msg: err.message
-        });
+        // B) for RENDERED WEBSITE 
+
+        // Operational error
+        if (err.isOperational) {
+            return res.status(err.statusCode).render("error", {
+                title: "Something went wrong!",
+                msg: err.message
+            });
+        }
+        else {
+            // Programming, Unknown error
+
+            // eslint-disable-next-line no-console
+            console.error("ERROR!", err);
+
+            return res.status(err.statusCode).render("error", {
+                title: "Something went wrong!",
+                msg: "please try again later!"
+            });
+        }
     }
 };
 
@@ -70,18 +100,19 @@ module.exports = (err, req, res, next) => {
     err.statusCode = err.statusCode || 500;
     err.status = err.status || "error";
 
-    if(process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === "development") {
         // console.error(err);
         sendErrorDev(err, req, res);
-    } 
-    else if(process.env.NODE_ENV === "production") {
+    }
+    else if (process.env.NODE_ENV === "production") {
         let error = { ...err };
+        error.message = err.message;
 
-        if(error.name === "CastError") error = HandleDbCastError(error);
-        if(error.statusCode === 11000) error = handleDbDuplicateFields(error);
-        if(error.name === "ValidationError") error = handleDbValidationError(error);
-        if(error.name === "JsonWebTokenError") error = handleJWTError(error);
-        if(error.name === "TokenExpiredError") error = handleJWTExpiredError(error);
+        if (error.name === "CastError") error = HandleDbCastError(error);
+        if (error.statusCode === 11000) error = handleDbDuplicateFields(error);
+        if (error.name === "ValidationError") error = handleDbValidationError(error);
+        if (error.name === "JsonWebTokenError") error = handleJWTError(error);
+        if (error.name === "TokenExpiredError") error = handleJWTExpiredError(error);
 
         sendErrorProd(error, req, res);
     }
